@@ -1,0 +1,30 @@
+{
+  "address": "slope_test",
+  "content_hash": "sha256:fa3f6639299310cafd7174fd1c35109d169029da6f98f0bd99d5b621066fbc0e",
+  "generated_by": {
+    "commit": "e0d8420e713caad29097e02dd727d1f9247601de",
+    "environment": {
+      "iri": "urn:lightcone:env:sha256:8f1dcae7db0352d011dd4ed2b0cddb186b65b361da665646ffcd579159076705"
+    },
+    "finished": "2026-11-24T14:58:10.570Z",
+    "inputs": [
+      {
+        "content_hash": "sha256:a006edd1294b4f1f77c88fafbc1cb26388da950dd77b22dce9c97bb4d14a8054",
+        "entry": "noise_models#hann",
+        "size": 6703
+      },
+      {
+        "content_hash": "sha256:e076d60a950eb733c8dd6a2a4066d2114e4ed1a4ce34d08af3d2e3ab7e107c2c",
+        "entry": "noise_models#hann_slope_one",
+        "size": 6113
+      }
+    ],
+    "runner": {
+      "id": "lightcone-cli",
+      "version": "0.6.0rc2"
+    },
+    "started": "2026-11-24T14:58:09.302Z"
+  },
+  "size": 1332,
+  "spec_version": "0.1.0"
+}
