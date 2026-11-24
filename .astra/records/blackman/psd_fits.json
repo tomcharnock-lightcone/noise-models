@@ -1,0 +1,30 @@
+{
+  "address": "psd_fits#blackman",
+  "content_hash": "sha256:30386b1ebd2793f060b0296e8cc53a4e536e425ce3b82585911065620cc92f22",
+  "generated_by": {
+    "commit": "462f2f16ec9705c1b605a3816f8a88ff16e55c66",
+    "environment": {
+      "iri": "urn:lightcone:env:sha256:8f1dcae7db0352d011dd4ed2b0cddb186b65b361da665646ffcd579159076705"
+    },
+    "finished": "2026-11-24T09:11:38.917Z",
+    "inputs": [
+      {
+        "content_hash": "sha256:2764121887edf19c11b8f84b94c39ff4b0f7013e13e1d63d41e7542a7b7a4bf0",
+        "entry": "welch_psd",
+        "size": 1422404
+      },
+      {
+        "content_hash": "sha256:3d9e3bcb2fd5bf16fd05ca14cc4025cdd7583b8a8df19f447de68be3724a8c1e",
+        "entry": "noise_models",
+        "size": 6612
+      }
+    ],
+    "runner": {
+      "id": "lightcone-cli",
+      "version": "0.6.0rc2"
+    },
+    "started": "2026-11-24T09:11:24.963Z"
+  },
+  "size": 641748,
+  "spec_version": "0.1.0"
+}
