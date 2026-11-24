@@ -20,6 +20,10 @@ from scipy import optimize, signal
 #: `segment_length` decision, in seconds.
 SEGMENT_SECONDS = {"one_day": 86_400, "six_hours": 21_600}
 
+#: The slope of the 1/f part, by the option ids of the `slope` decision:
+#: fitted with the rest (None), or held at a value.
+SLOPES = {"free": None, "one": 1.0}
+
 #: Lowest Welch bin the fit uses. Removing each segment's mean zeroes the DC
 #: bin, and the window spreads that hole over its main lobe: two bins either
 #: side of DC for Hann, three for Blackman. The fit starts past both.
@@ -125,8 +129,11 @@ def _nll(theta, f, p, fs):
     return np.sum(ln_m + r), jac @ (1.0 - r), jac
 
 
-def fit_psd(f: np.ndarray, p: np.ndarray, fs: float) -> dict:
+def fit_psd(f: np.ndarray, p: np.ndarray, fs: float, alpha: float | None = None) -> dict:
     """Fit the white + 1/f model to a Welch PSD by maximum Whittle likelihood.
+
+    With alpha None the slope is fitted with σ_w and f_knee; with a number it
+    is held there and only σ_w and f_knee are fitted.
 
     A Welch estimate is P̂ = P · χ²_ν / ν at each bin, so the negative log
     likelihood is (ν/2) Σ [ln P + P̂/P] up to a constant, whose minimum does
@@ -143,13 +150,24 @@ def fit_psd(f: np.ndarray, p: np.ndarray, fs: float) -> dict:
     floor = np.median(pb[fb > fb[-1] / 10])
     above = np.nonzero(pb > 2 * floor)[0]
     fk0 = fb[above[-1]] if len(above) else fb[0]
-    theta0 = np.array([np.log(floor * fs / 2), np.log(fk0), 1.0])
+    theta0 = np.array([np.log(floor * fs / 2), np.log(fk0), 1.0 if alpha is None else alpha])
+    free = np.array([True, True, alpha is None])
 
-    lo = np.array([-np.inf, np.log(fb[0] / 1e3), ALPHA_BOUNDS[0]])
-    hi = np.array([np.inf, np.log(fs * 1e3), ALPHA_BOUNDS[1]])
-    res = optimize.minimize(lambda t: _nll(t, fb, pb, fs)[:2], theta0, jac=True,
+    def full(t_free):
+        t = theta0.copy()
+        t[free] = t_free
+        return t
+
+    lo = np.array([-np.inf, np.log(fb[0] / 1e3), ALPHA_BOUNDS[0]])[free]
+    hi = np.array([np.inf, np.log(fs * 1e3), ALPHA_BOUNDS[1]])[free]
+
+    def nll(t_free):
+        value, grad, jac = _nll(full(t_free), fb, pb, fs)
+        return value, grad[free], jac[free]
+
+    res = optimize.minimize(lambda t: nll(t)[:2], theta0[free], jac=True,
                             method="L-BFGS-B", bounds=list(zip(lo, hi)))
-    theta = np.clip(res.x, lo, hi)
+    t_free = np.clip(res.x, lo, hi)
 
     # Fisher scoring: the expected Hessian of Σ[ln P + P̂/P] is Σ ∂lnP ∂lnPᵀ.
     # The Newton decrement is twice the expected drop still to come; one unit
@@ -157,7 +175,7 @@ def fit_psd(f: np.ndarray, p: np.ndarray, fs: float) -> dict:
     # that moves a parameter.
     converged = False
     for _ in range(50):
-        value, grad, jac = _nll(theta, fb, pb, fs)
+        value, grad, jac = nll(t_free)
         step = -np.linalg.solve(jac @ jac.T, grad)
         decrement = -grad @ step
         if decrement < 1e-9:
@@ -165,27 +183,30 @@ def fit_psd(f: np.ndarray, p: np.ndarray, fs: float) -> dict:
             break
         t = 1.0
         while t > 1e-6:
-            trial = np.clip(theta + t * step, lo, hi)
-            if _nll(trial, fb, pb, fs)[0] < value:
+            trial = np.clip(t_free + t * step, lo, hi)
+            if nll(trial)[0] < value:
                 break
             t /= 2
         else:
             # No step lowers it: rounding, or a parameter held at its bound.
-            pinned = np.isclose(theta, lo) | np.isclose(theta, hi)
+            pinned = np.isclose(t_free, lo) | np.isclose(t_free, hi)
             converged = decrement < 1e-6 or bool(pinned.any())
             break
-        theta = trial
+        t_free = trial
     if not converged:
         raise RuntimeError(f"PSD fit did not converge (L-BFGS-B: {res.message})")
+    theta = full(t_free)
+    lo, hi = full(lo), full(hi)
 
     ln_m, _ = _log_model_and_jacobian(theta, fb, fs)
-    at_bound = [name for name, v, a, b in zip(("ln_sigma2", "ln_f_knee", "alpha"), theta, lo, hi)
-                if np.isclose(v, a) or np.isclose(v, b)]
+    at_bound = [name for name, v, a, b, fr in zip(("ln_sigma2", "ln_f_knee", "alpha"), theta, lo, hi, free)
+                if fr and (np.isclose(v, a) or np.isclose(v, b))]
     return {
         "theta": theta,
         "sigma_white": float(np.exp(theta[0] / 2)),
         "f_knee": float(np.exp(theta[1])),
         "alpha": float(theta[2]),
+        "alpha_fixed": alpha is not None,
         "fit_f_min": float(fb[0]),
         "fit_f_max": float(fb[-1]),
         "n_fit_bins": int(band.sum()),
@@ -201,6 +222,9 @@ def bootstrap(fit: dict, n_samples: int, fs: float, window_name: str, segment_s:
               n_boot: int, rng: np.random.Generator) -> np.ndarray:
     """Parametric bootstrap: refit n_boot series simulated from a fit.
 
+    Each draw is refitted the way the fit was, its slope free or held at the
+    same value; a held slope has no spread.
+
     Returns (ln σ_w², ln f_knee, α, low_band_ratio) for each draw, shape
     (n_boot, 4). The spread is the fit's uncertainty, with the window, the overlap and the
     correlation between bins all accounted for, because the simulated series
@@ -208,5 +232,6 @@ def bootstrap(fit: dict, n_samples: int, fs: float, window_name: str, segment_s:
     """
     x = simulate(rng, n_samples, fs, fit["sigma_white"], fit["f_knee"], fit["alpha"], n_boot)
     f, p, _ = welch(x, fs, window_name, segment_s)
-    fits = [fit_psd(f, pi, fs) for pi in p]
+    alpha = fit["alpha"] if fit["alpha_fixed"] else None
+    fits = [fit_psd(f, pi, fs, alpha) for pi in p]
     return np.array([[*r["theta"], r["low_band_ratio"]] for r in fits])

@@ -9,7 +9,8 @@ description: >-
   component through its power spectral density, P(f) = (2 σ_w² / fs) ·
   [1 + (f_knee / f)^α], so that other projects can look a sensor up by its id
   and simulate or weight its noise. The spectrum is estimated with Welch's
-  method, under both a Hann and a Blackman window.
+  method, under both a Hann and a Blackman window, and the 1/f slope α is
+  either fitted per sensor or held at exactly 1.
 
 inputs:
   chamber_run:
@@ -58,6 +59,23 @@ decisions:
       six_hours:
         label: Six hours (2160 readings)
 
+  slope:
+    label: 1/f slope
+    rationale: >-
+      Fitted freely, the 40 slopes cluster tightly around 1, and with α free
+      its uncertainty is shared with f_knee and σ_w. Holding α at exactly 1,
+      the textbook 1/f, narrows f_knee and σ_w, and makes the model the
+      simplest one, P(f) = W + K/f. Within the measured band the two models
+      predict nearly the same spectrum; they part below it, where a held slope
+      gives narrow uncertainties that are only right if the sensor's slope
+      really is 1. slope_test measures whether the data allow that, sensor by
+      sensor and for all 40 together. Both are built.
+    options:
+      free:
+        label: Fitted with σ_w and f_knee
+      one:
+        label: Held at exactly 1
+
 outputs:
   welch_psd:
     label: Welch power spectral densities
@@ -89,7 +107,9 @@ outputs:
       10-second reading) and white_psd_c2_per_hz (2 σ_w² / fs, the same level
       independent of sampling rate), the knee f_knee_hz and slope alpha of the
       1/f part, each with a 1σ uncertainty (_err) from a 200-draw parametric
-      bootstrap through the same Welch estimate and fit. The fit maximises the
+      bootstrap through the same Welch estimate and fit. Under the `slope`
+      decision's `one`, alpha is 1 for every sensor, alpha_err is 0 and
+      alpha_fixed is true. The fit maximises the
       Whittle likelihood over the bins from the third above zero up to, not
       including, Nyquist. knee_above_nyquist marks sensors whose white floor
       lies above every measured frequency, so σ_w is an extrapolation of the
@@ -99,8 +119,9 @@ outputs:
       mean_c and std_c over the week; with 1/f noise std_c grows with the
       length of the record, so it does not carry over to other durations.
     inputs: [welch_psd]
+    decisions: [slope]
     recipe:
-      command: python src/fit_noise.py {inputs.welch_psd} {output}
+      command: python src/fit_noise.py {inputs.welch_psd} {decisions.slope} {output}
       resources:
         cpus: 8
         memory: 8Gi
@@ -121,15 +142,21 @@ outputs:
     type: metric
     format: json
     description: >-
-      For σ_w, f_knee and α, the largest difference between the Blackman and
-      Hann fits across the sensors (relative for σ_w and f_knee), which sensor
-      it is, and the largest and median difference in units of the Hann fit's
-      bootstrap uncertainty.
-    inputs: [noise_models#hann, noise_models#blackman]
+      For σ_w, f_knee and a fitted α, the largest difference between the
+      Blackman and Hann fits across the sensors (relative for σ_w and
+      f_knee), which sensor it is, and the largest and median difference in
+      units of the Hann fit's bootstrap uncertainty: once for the free slope
+      (slope_free) and once for the slope held at 1 (slope_one).
+    inputs:
+      - noise_models#hann
+      - noise_models#blackman
+      - noise_models#hann_slope_one
+      - noise_models#blackman_slope_one
     recipe:
       command: >-
         python src/window_difference.py {inputs.noise_models#hann}
-        {inputs.noise_models#blackman} {output}
+        {inputs.noise_models#blackman} {inputs.noise_models#hann_slope_one}
+        {inputs.noise_models#blackman_slope_one} {output}
 
   window_comparison:
     label: Hann against Blackman, per sensor
@@ -143,6 +170,39 @@ outputs:
       command: >-
         python src/plot_window_comparison.py {inputs.noise_models#hann}
         {inputs.noise_models#blackman} {output}
+
+  slope_test:
+    label: Is the 1/f slope 1?
+    type: metric
+    format: json
+    description: >-
+      From the free-slope and held-slope fits under the Hann window: the χ² of
+      (α − 1)/σ_α over all sensors and its p-value, the precision-weighted
+      mean slope, and the slopes' intrinsic scatter about their common mean
+      (maximum likelihood and one-sided 95% upper limit). Then each sensor
+      whose free slope is more than 2σ from 1, beside how many that many
+      sensors give by chance, with how far holding its slope at 1 moves its
+      σ_w and f_knee in units of the free fit's uncertainty. Last, the median
+      ratio of the held fit's uncertainties to the free fit's.
+    inputs: [noise_models#hann, noise_models#hann_slope_one]
+    recipe:
+      command: >-
+        python src/slope_test.py {inputs.noise_models#hann}
+        {inputs.noise_models#hann_slope_one} {output}
+
+  slope_comparison:
+    label: Free slope against slope held at 1, per sensor
+    type: figure
+    format: png
+    description: >-
+      Each sensor's free slope against 1, and the held fit's σ_w and f_knee
+      relative to the free fit's, with both fits' ±1σ uncertainties (Hann
+      window).
+    inputs: [noise_models#hann, noise_models#hann_slope_one]
+    recipe:
+      command: >-
+        python src/plot_slope_comparison.py {inputs.noise_models#hann}
+        {inputs.noise_models#hann_slope_one} {output}
 
   chamber_check:
     label: Chamber stability check
@@ -164,15 +224,26 @@ outputs:
 
 universes:
   hann:
-    label: Hann window
+    label: Hann window, slope fitted
     decisions:
       window: hann
       segment_length: one_day
+      slope: free
   blackman:
-    label: Blackman window
+    label: Blackman window, slope fitted
     derived_from: hann
     decisions:
       window: blackman
+  hann_slope_one:
+    label: Hann window, slope held at 1
+    derived_from: hann
+    decisions:
+      slope: one
+  blackman_slope_one:
+    label: Blackman window, slope held at 1
+    derived_from: blackman
+    decisions:
+      slope: one
 
 findings:
   window_choice_immaterial:

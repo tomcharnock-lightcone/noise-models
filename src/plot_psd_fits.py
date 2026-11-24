@@ -60,8 +60,9 @@ def main(psd_path: str, models_path: str, out: str) -> None:
         plt.Line2D([], [], color=INK_2, lw=1, ls=":", label="knee (when below Nyquist)"),
     ]
     fig.legend(handles=handles, loc="outside lower center", ncol=4, frameon=False)
+    slope = "α held at 1" if models.alpha_fixed.all() else "α fitted"
     fig.suptitle(f"Chamber noise spectra, {d['window']} window, "
-                 f"{float(d['segment_s']) / 3600:g} h segments", fontsize=11, color=INK)
+                 f"{float(d['segment_s']) / 3600:g} h segments, {slope}", fontsize=11, color=INK)
     fig.savefig(out, dpi=110, facecolor=SURFACE, metadata={"Software": None})
 
 

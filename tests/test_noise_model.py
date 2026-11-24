@@ -73,3 +73,28 @@ def test_loader_reads_a_regular_series(tmp_path):
 def test_loader_refuses_irregular_readings(tmp_path, rows, message):
     with pytest.raises(ValueError, match=message):
         readings.load(_write(tmp_path, rows))
+
+
+def test_fit_can_hold_the_slope():
+    rng = np.random.default_rng(3)
+    x = noise_model.simulate(rng, WEEK, FS, 0.15, 5e-3, 1.0, n_series=20)
+    f, p, _ = noise_model.welch(x, FS, "hann", 86_400)
+    fits = [noise_model.fit_psd(f, pi, FS, alpha=1.0) for pi in p]
+    assert all(r["alpha"] == 1.0 and r["alpha_fixed"] for r in fits)
+    est = np.median([[r["sigma_white"], r["f_knee"]] for r in fits], axis=0)
+    assert est[0] == pytest.approx(0.15, rel=0.03)
+    assert est[1] == pytest.approx(5e-3, rel=0.1)
+    boot = noise_model.bootstrap(fits[0], WEEK, FS, "hann", 86_400, 10, rng)
+    assert np.all(boot[:, 2] == 1.0)
+
+
+@pytest.mark.parametrize("tau", [0.0, 0.05])
+def test_intrinsic_scatter_recovers_what_it_is_given(tau):
+    import slope_test
+
+    rng = np.random.default_rng(4)
+    s = rng.uniform(0.01, 0.07, size=2000)
+    a = 1 + rng.normal(0, np.sqrt(s**2 + tau**2))
+    ml, upper = slope_test.intrinsic_scatter(a, s)
+    assert ml == pytest.approx(tau, abs=0.006)
+    assert upper > ml

@@ -1,6 +1,9 @@
 """Fit the white + 1/f noise model to each sensor's Welch PSD.
 
-usage: python src/fit_noise.py PSD.npz OUT.csv
+usage: python src/fit_noise.py PSD.npz SLOPE OUT.csv
+
+SLOPE is an option of the `slope` decision (noise_model.SLOPES): `free`
+fits α with σ_w and f_knee, `one` holds α at exactly 1 (alpha_err is then 0).
 
 One row per sensor. Uncertainties are the spread of a parametric bootstrap:
 N_BOOT series are simulated from each sensor's fit, put through the same
@@ -27,13 +30,14 @@ N_BOOT = 200
 SEED = 20221212
 
 
-def main(psd_path: str, out: str) -> None:
+def main(psd_path: str, slope: str, out: str) -> None:
+    alpha = noise_model.SLOPES[slope]
     d = np.load(psd_path)
     f, fs = d["freq_hz"], float(d["fs_hz"])
     window, segment_s, n_samples = str(d["window"]), float(d["segment_s"]), int(d["n_samples"])
     rows = []
     for i, sensor in enumerate(d["sensors"]):
-        fit = noise_model.fit_psd(f, d["psd_c2_per_hz"][i], fs)
+        fit = noise_model.fit_psd(f, d["psd_c2_per_hz"][i], fs, alpha)
         rng = np.random.default_rng([SEED, i])
         boot = noise_model.bootstrap(fit, n_samples, fs, window, segment_s, N_BOOT, rng)
         spread = boot.std(axis=0, ddof=1)
@@ -49,6 +53,7 @@ def main(psd_path: str, out: str) -> None:
             "f_knee_hz_err": fit["f_knee"] * spread[1],
             "alpha": fit["alpha"],
             "alpha_err": spread[2],
+            "alpha_fixed": fit["alpha_fixed"],
             "knee_above_nyquist": fit["f_knee"] > fs / 2,
             "low_band_ratio": fit["low_band_ratio"],
             "low_band_ratio_z": (fit["low_band_ratio"] - boot[:, 3].mean()) / spread[3],
