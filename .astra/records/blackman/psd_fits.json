@@ -1,12 +1,12 @@
 {
   "address": "psd_fits#blackman",
-  "content_hash": "sha256:d59fa9c734f84d929618af4e5caf31ab540c95cdb490f6e09aee4be05db96688",
+  "content_hash": "sha256:96911ec4d2133a6bd67a6d689615ef65d9d67d3b942d491c75628dcb10b67adf",
   "generated_by": {
-    "commit": "a914b9a5ab121bd200e8dd186eea17857201a175",
+    "commit": "e0d8420e713caad29097e02dd727d1f9247601de",
     "environment": {
       "iri": "urn:lightcone:env:sha256:8f1dcae7db0352d011dd4ed2b0cddb186b65b361da665646ffcd579159076705"
     },
-    "finished": "2026-11-24T09:13:22.763Z",
+    "finished": "2026-11-24T14:58:25.608Z",
     "inputs": [
       {
         "content_hash": "sha256:2764121887edf19c11b8f84b94c39ff4b0f7013e13e1d63d41e7542a7b7a4bf0",
@@ -14,17 +14,17 @@
         "size": 1422404
       },
       {
-        "content_hash": "sha256:3d9e3bcb2fd5bf16fd05ca14cc4025cdd7583b8a8df19f447de68be3724a8c1e",
+        "content_hash": "sha256:bd23c99afaa849fd5d0b89366c36f1940315d107ab5dd2f46df4d52c457bb6da",
         "entry": "noise_models",
-        "size": 6612
+        "size": 6864
       }
     ],
     "runner": {
       "id": "lightcone-cli",
       "version": "0.6.0rc2"
     },
-    "started": "2026-11-24T09:13:08.497Z"
+    "started": "2026-11-24T14:58:11.576Z"
   },
-  "size": 637447,
+  "size": 638022,
   "spec_version": "0.1.0"
 }
