@@ -249,9 +249,10 @@ findings:
   window_choice_immaterial:
     claim: >-
       For every sensor, the Hann and Blackman windows give the same noise
-      model within the fits' own uncertainty: σ_w differs by under 1%, and no
-      parameter of any sensor moves by more than 0.74 of its 1σ bootstrap
-      uncertainty. Either universe's models can be used.
+      model within the fits' own uncertainty, whether the slope is fitted or
+      held at 1: σ_w differs by under 1%, and no parameter of any sensor moves
+      by more than 0.74 of its 1σ bootstrap uncertainty. Either window's
+      models can be used.
     evidence:
       - artifact: window_difference
         quote: { exact: '"max_abs_relative_difference": 0.0095' }
@@ -269,3 +270,20 @@ findings:
         quote: { exact: '"ratio": 0.97078' }
       - artifact: chamber_check
         quote: { exact: '"ratio": 0.87022' }
+
+  slope_one_allowed:
+    claim: >-
+      Taken together, the 40 sensors' free 1/f slopes are consistent with
+      exactly 1, and their intrinsic scatter about a common slope is at most
+      0.019 (95%). Holding α at 1 narrows the uncertainty on f_knee by about a
+      third. Sensor s38 alone is in tension with α = 1, at 3.3σ, and should
+      keep its free slope; the held-slope models are the default for the rest.
+    evidence:
+      - artifact: slope_test
+        quote: { exact: '"p_value": 0.168' }
+      - artifact: slope_test
+        quote: { exact: '"intrinsic_scatter_95_upper": 0.0189' }
+      - artifact: slope_test
+        quote: { exact: '"median_err_ratio_fixed_over_free_f_knee": 0.66' }
+      - artifact: slope_test
+        quote: { exact: '"alpha_minus_one_in_errors": 3.28' }

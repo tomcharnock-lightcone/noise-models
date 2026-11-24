@@ -10,6 +10,8 @@ FREE and FIXED are noise_models tables fitted with the slope free and held at
   about their common mean (α_i ~ N(μ, σ_i² + τ²), μ profiled out), as a
   maximum-likelihood value and a one-sided 95% upper limit. τ bounds how far
   holding every sensor at one slope can be wrong.
+  The χ² is given again without the sensor furthest from 1, to show
+  whether one sensor carries the tension.
 - tension: every sensor whose free slope is more than 2σ from 1, how many
   that many sensors give by chance, and how far holding its slope at 1 moves
   its σ_w and f_knee, in units of the free fit's uncertainty.
@@ -58,6 +60,8 @@ def main(free_path: str, fixed_path: str, out: str) -> None:
     chi2 = float(np.sum(pull**2))
     w = 1 / s**2
     tau_ml, tau_95 = intrinsic_scatter(a, s)
+    worst = pull.abs().idxmax()
+    chi2_rest = chi2 - float(pull[worst] ** 2)
 
     sig_shift = (fixed.sigma_white_c - free.sigma_white_c) / free.sigma_white_c_err
     fk_shift = np.log(fixed.f_knee_hz / free.f_knee_hz) / (free.f_knee_hz_err / free.f_knee_hz)
@@ -84,6 +88,12 @@ def main(free_path: str, fixed_path: str, out: str) -> None:
             "weighted_mean_alpha_err": round(float(np.sum(w) ** -0.5), 4),
             "intrinsic_scatter_ml": round(tau_ml, 4),
             "intrinsic_scatter_95_upper": round(tau_95, 4),
+            "without_most_discrepant": {
+                "sensor": worst,
+                "chi2_alpha_one": round(chi2_rest, 1),
+                "dof": len(free) - 1,
+                "p_value": round(float(stats.chi2.sf(chi2_rest, len(free) - 1)), 3),
+            },
         },
         "tension": {
             "beyond_2_sigma_expected_by_chance": round(len(free) * 2 * float(stats.norm.sf(2)), 1),
