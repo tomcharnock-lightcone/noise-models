@@ -1,6 +1,7 @@
 [project]
 name = "noise-models"
 version = "0.0.1"
+license = "MIT"
 requires-python = ">=3.14"
 dependencies = [
     "matplotlib>=3.11.2",
