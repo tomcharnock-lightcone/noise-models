@@ -131,7 +131,7 @@ Blackman against Hann, sensor by sensor, for each parameter, against the
 Hann fit's ±1σ bootstrap uncertainty (grey).
 ```
 
-**The slope can be held at 1, and should be by default, except for s38.**
+**The slope can be held at 1, and is by default, for every sensor.**
 Fitted freely, the slopes cluster around 1. Holding them there is the
 `slope` decision's option `one`, built in the universes `hann_slope_one`
 and `blackman_slope_one`. `results/slope_test.json` (finding
@@ -179,12 +179,18 @@ sensors, not the chamber.
 
 ### Using the models elsewhere
 
-- **By default use the slope held at 1**, `results/hann_slope_one/noise_models.csv`
-  (`results/blackman_slope_one/noise_models.csv` is interchangeable with it),
-  and look a sensor up by its id. **For s38 use its row in the free-slope
-  table**, `results/hann/noise_models.csv`: its data reject α = 1, and holding
-  it there shifts its σ_w and f_knee well outside their uncertainties. s37 is
-  borderline. Its free and held models agree within about 2σ.
+- **By default use the slope held at 1, for every sensor**:
+  `results/hann_slope_one/noise_models.csv`
+  (`results/blackman_slope_one/noise_models.csv` is interchangeable with it).
+  Look a sensor up by its id.
+- **s38 is the one caveat.** Its free slope lies beyond 3σ of 1. Among 40
+  sensors one that far out is about a one-in-ten chance
+  (`slope_test.json`, `beyond_3_sigma_expected_by_chance`), too likely to
+  build an exception on, so the default holds it at 1 too. Holding it there
+  shifts its σ_w and f_knee by about 3σ of the free fit's uncertainty. A
+  project sensitive to that can take s38's row from the free-slope table,
+  `results/hann/noise_models.csv`. s37 is borderline, with its free and held
+  models within about 2σ of each other.
 - A held-slope model's uncertainties are only as good as the assumption that
   α is exactly 1. The data allow the sensors' slopes to scatter only a
   little (`slope_test.json`, `intrinsic_scatter_95_upper`), and that bounds

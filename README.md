@@ -10,9 +10,16 @@ white plus 1/f, given by its power spectral density
   `results/<universe>/noise_models.csv`. The universes cross the Welch window
   (Hann or Blackman, which agree within their uncertainties) with the 1/f
   slope α (fitted per sensor, or held at 1: `*_slope_one`).
-- **Default: `results/hann_slope_one/noise_models.csv`** (α = 1), except
-  sensor s38, whose data reject α = 1. For s38 use its row in
-  `results/hann/noise_models.csv`.
+- **Default, for every sensor: `results/hann_slope_one/noise_models.csv`**
+  (α held at 1; the Blackman table is interchangeable).
+
+**Caveat: s38.** Its free fit gives α = 1.043 ± 0.013, 3.3σ above 1, the only
+sensor past 3σ. Among 40 sensors that happens by chance about one time in
+ten, so the default keeps s38 at α = 1 like the rest. Holding its slope at 1
+puts its σ_w 10% below the free fit and its f_knee 41% above, both about 3σ
+of the free fit's uncertainty. If that matters for a project, s38's
+free-slope row is in `results/hann/noise_models.csv`, and
+`results/slope_test.json` has the comparison.
 - Model code and a noise simulator: `src/noise_model.py`.
 - Method, checks and caveats: [`index.md`](index.md). Specification: `astra.yaml`.
 

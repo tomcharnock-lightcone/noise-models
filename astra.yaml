@@ -235,7 +235,7 @@ universes:
     decisions:
       window: blackman
   hann_slope_one:
-    label: Hann window, slope held at 1
+    label: Hann window, slope held at 1 (the default)
     derived_from: hann
     decisions:
       slope: one
@@ -276,8 +276,9 @@ findings:
       Taken together, the 40 sensors' free 1/f slopes are consistent with
       exactly 1, and their intrinsic scatter about a common slope is at most
       0.019 (95%). Holding α at 1 narrows the uncertainty on f_knee by about a
-      third. Sensor s38 alone is in tension with α = 1, at 3.3σ, and should
-      keep its free slope; the held-slope models are the default for the rest.
+      third. Sensor s38 alone is in tension with α = 1, at 3.3σ, which among
+      40 sensors is about a one-in-ten chance, so the held-slope models are
+      the default for every sensor, s38 included.
     evidence:
       - artifact: slope_test
         quote: { exact: '"p_value": 0.168' }
@@ -287,3 +288,5 @@ findings:
         quote: { exact: '"median_err_ratio_fixed_over_free_f_knee": 0.66' }
       - artifact: slope_test
         quote: { exact: '"alpha_minus_one_in_errors": 3.28' }
+      - artifact: slope_test
+        quote: { exact: '"beyond_3_sigma_expected_by_chance": 0.11' }
