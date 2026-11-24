@@ -1,0 +1,25 @@
+{
+  "address": "noise_models#hann_slope_one",
+  "content_hash": "sha256:e076d60a950eb733c8dd6a2a4066d2114e4ed1a4ce34d08af3d2e3ab7e107c2c",
+  "generated_by": {
+    "commit": "e0d8420e713caad29097e02dd727d1f9247601de",
+    "environment": {
+      "iri": "urn:lightcone:env:sha256:8f1dcae7db0352d011dd4ed2b0cddb186b65b361da665646ffcd579159076705"
+    },
+    "finished": "2026-11-24T14:57:38.430Z",
+    "inputs": [
+      {
+        "content_hash": "sha256:93c584c27fb80a5ce8a32076bd307f1d0f4f88d5a547edc53b45f78fb953e6ad",
+        "entry": "welch_psd",
+        "size": 1422388
+      }
+    ],
+    "runner": {
+      "id": "lightcone-cli",
+      "version": "0.6.0rc2"
+    },
+    "started": "2026-11-24T14:55:18.818Z"
+  },
+  "size": 6113,
+  "spec_version": "0.1.0"
+}
