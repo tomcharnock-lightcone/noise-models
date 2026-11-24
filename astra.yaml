@@ -1,0 +1,175 @@
+# ASTRA Analysis Specification
+
+spec_version: "0.1.0"
+label: "noise-models"
+description: >-
+  Noise models for the 40 temperature sensors (s01 to s40), measured in a
+  climate chamber held at constant temperature for one week of 10-second
+  readings. Each sensor's noise is fitted as white noise plus a 1/f-type
+  component through its power spectral density, P(f) = (2 σ_w² / fs) ·
+  [1 + (f_knee / f)^α], so that other projects can look a sensor up by its id
+  and simulate or weight its noise. The spectrum is estimated with Welch's
+  method, under both a Hann and a Blackman window.
+
+inputs:
+  chamber_run:
+    label: Climate-chamber run
+    path: data/chamber-run.csv
+    description: >-
+      One week (2022-12-12 to 2022-12-18, UTC) of readings from all 40 sensors
+      in a climate chamber at constant temperature, one reading every 10
+      seconds per sensor, 60,480 per sensor, none missing. Columns time
+      (ISO 8601, UTC), sensor (s01 to s40, the ids the sensors keep outside
+      the chamber) and temp_c, in steps of 0.01 °C. SHA-256
+      beffebaa43f49a110f3cead5666c42f001086bbfb2854950e434467c1f836791, as
+      the delivery's SHA256SUMS lists.
+
+decisions:
+  window:
+    label: Welch window
+    rationale: >-
+      Most sensors' spectra rise steeply toward low frequency, so a window's
+      leakage can carry low-frequency power up onto the white floor and bias
+      σ_w high. Blackman's sidelobes sit far lower than Hann's (about -58 dB
+      against -31 dB), which limits that leakage, but its main lobe is wider,
+      so neighbouring frequency bins are more correlated and the resolution
+      near the lowest frequencies is coarser. Which matters more for these
+      sensors is not known in advance, so both are built.
+    options:
+      hann:
+        label: Hann
+        description: scipy.signal.get_window("hann", n), periodic.
+      blackman:
+        label: Blackman
+        description: scipy.signal.get_window("blackman", n), periodic.
+
+  segment_length:
+    label: Welch segment length
+    rationale: >-
+      Longer segments reach lower frequencies, which constrain α and f_knee;
+      shorter ones average more segments, which narrows each bin's scatter.
+      One day with half overlap gives 13 segments over the week and fits from
+      3 / 86400 s ≈ 3.5e-5 Hz. Six hours would fit only from 1.4e-4 Hz, above
+      the knee of several sensors, leaving their 1/f slope poorly pinned. It
+      is recorded as an alternative but not built.
+    options:
+      one_day:
+        label: One day (8640 readings)
+      six_hours:
+        label: Six hours (2160 readings)
+
+outputs:
+  welch_psd:
+    label: Welch power spectral densities
+    type: data
+    format: npz
+    description: >-
+      One-sided PSD in °C²/Hz of every sensor's readings (psd_c2_per_hz,
+      sensors × freq_hz), half-overlapping segments, each segment's mean
+      removed before windowing. Also holds the sensors' ids, the sampling
+      rate, the window, segmenting, the estimate's equivalent degrees of
+      freedom (Percival & Walden eq. 292b), and each sensor's mean and
+      standard deviation over the week.
+    inputs: [chamber_run]
+    decisions: [window, segment_length]
+    recipe:
+      command: >-
+        python src/welch_psd.py {inputs.chamber_run} {decisions.window}
+        {decisions.segment_length} {output}
+      resources:
+        cpus: 4
+        memory: 8Gi
+
+  noise_models:
+    label: Noise model per sensor
+    type: table
+    format: csv
+    description: >-
+      One row per sensor: the fitted white-noise level sigma_white_c (°C per
+      10-second reading) and white_psd_c2_per_hz (2 σ_w² / fs, the same level
+      independent of sampling rate), the knee f_knee_hz and slope alpha of the
+      1/f part, each with a 1σ uncertainty (_err) from a 200-draw parametric
+      bootstrap through the same Welch estimate and fit. The fit maximises the
+      Whittle likelihood over the bins from the third above zero up to, not
+      including, Nyquist. knee_above_nyquist marks sensors whose white floor
+      lies above every measured frequency, so σ_w is an extrapolation of the
+      model there. low_band_ratio (mean data / model over the lowest decade
+      fitted) and low_band_ratio_z (its distance from the bootstrap's, in
+      bootstrap σ) test the 1/f shape where the data stretch it most. Also
+      mean_c and std_c over the week; with 1/f noise std_c grows with the
+      length of the record, so it does not carry over to other durations.
+    inputs: [welch_psd]
+    recipe:
+      command: python src/fit_noise.py {inputs.welch_psd} {output}
+      resources:
+        cpus: 8
+        memory: 8Gi
+
+  psd_fits:
+    label: Spectra and fits, every sensor
+    type: figure
+    format: png
+    description: >-
+      One panel per sensor: the Welch estimate, the fitted model, the white
+      floor and, where it falls below Nyquist, the knee.
+    inputs: [welch_psd, noise_models]
+    recipe:
+      command: python src/plot_psd_fits.py {inputs.welch_psd} {inputs.noise_models} {output}
+
+  window_difference:
+    label: Hann against Blackman, in numbers
+    type: metric
+    format: json
+    description: >-
+      For σ_w, f_knee and α, the largest difference between the Blackman and
+      Hann fits across the sensors (relative for σ_w and f_knee), which sensor
+      it is, and the largest and median difference in units of the Hann fit's
+      bootstrap uncertainty.
+    inputs: [noise_models#hann, noise_models#blackman]
+    recipe:
+      command: >-
+        python src/window_difference.py {inputs.noise_models#hann}
+        {inputs.noise_models#blackman} {output}
+
+  window_comparison:
+    label: Hann against Blackman, per sensor
+    type: figure
+    format: png
+    description: >-
+      The Blackman-minus-Hann difference in σ_w, f_knee and α for every
+      sensor, against the Hann fit's ±1σ uncertainty.
+    inputs: [noise_models#hann, noise_models#blackman]
+    recipe:
+      command: >-
+        python src/plot_window_comparison.py {inputs.noise_models#hann}
+        {inputs.noise_models#blackman} {output}
+
+  chamber_check:
+    label: Chamber stability check
+    type: metric
+    format: json
+    description: >-
+      Whether the chamber held still: the spread of the across-sensor mean
+      against what independent sensor noise alone gives, and the sensors'
+      pairwise correlations, on the readings and on hourly means. Each
+      statistic has the 95% range of a null in which every sensor is
+      circularly shifted by its own random offset (200 draws), which keeps
+      each sensor's spectrum and removes anything they share.
+    inputs: [chamber_run]
+    recipe:
+      command: python src/chamber_check.py {inputs.chamber_run} {output}
+      resources:
+        cpus: 2
+        memory: 8Gi
+
+universes:
+  hann:
+    label: Hann window
+    decisions:
+      window: hann
+      segment_length: one_day
+  blackman:
+    label: Blackman window
+    derived_from: hann
+    decisions:
+      window: blackman
