@@ -1,12 +1,12 @@
 {
   "address": "psd_fits#hann",
-  "content_hash": "sha256:5eb3fc2613f47701aa2502d0479d2c63d8e2e6333f9f9a12f8699b08eb7fe81c",
+  "content_hash": "sha256:95018364eab164afed22335adeeae59bd0e066185f2ab7819dc47d5e1bfcbe2d",
   "generated_by": {
-    "commit": "462f2f16ec9705c1b605a3816f8a88ff16e55c66",
+    "commit": "a914b9a5ab121bd200e8dd186eea17857201a175",
     "environment": {
       "iri": "urn:lightcone:env:sha256:8f1dcae7db0352d011dd4ed2b0cddb186b65b361da665646ffcd579159076705"
     },
-    "finished": "2026-11-24T09:11:36.778Z",
+    "finished": "2026-11-24T09:13:22.870Z",
     "inputs": [
       {
         "content_hash": "sha256:93c584c27fb80a5ce8a32076bd307f1d0f4f88d5a547edc53b45f78fb953e6ad",
@@ -23,8 +23,8 @@
       "id": "lightcone-cli",
       "version": "0.6.0rc2"
     },
-    "started": "2026-11-24T09:11:22.917Z"
+    "started": "2026-11-24T09:13:08.492Z"
   },
-  "size": 644251,
+  "size": 639190,
   "spec_version": "0.1.0"
 }
