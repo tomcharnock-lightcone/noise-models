@@ -1,0 +1,25 @@
+{
+  "address": "noise_models#blackman_slope_one",
+  "content_hash": "sha256:0baa58472348892ca1997a85ff71a411de10a1e2e7ec8e3de32a01c396cc2b46",
+  "generated_by": {
+    "commit": "e0d8420e713caad29097e02dd727d1f9247601de",
+    "environment": {
+      "iri": "urn:lightcone:env:sha256:8f1dcae7db0352d011dd4ed2b0cddb186b65b361da665646ffcd579159076705"
+    },
+    "finished": "2026-11-24T14:57:32.871Z",
+    "inputs": [
+      {
+        "content_hash": "sha256:2764121887edf19c11b8f84b94c39ff4b0f7013e13e1d63d41e7542a7b7a4bf0",
+        "entry": "welch_psd",
+        "size": 1422404
+      }
+    ],
+    "runner": {
+      "id": "lightcone-cli",
+      "version": "0.6.0rc2"
+    },
+    "started": "2026-11-24T14:55:18.899Z"
+  },
+  "size": 6266,
+  "spec_version": "0.1.0"
+}
