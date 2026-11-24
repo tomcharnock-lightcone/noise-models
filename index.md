@@ -134,8 +134,9 @@ sensors, not the chamber.
   curvature of the spectrum near Nyquist, but less tightly, and its `_err`
   says by how much.
 - `low_band_ratio_z` tests the 1/f shape over the lowest decade fitted. Two
-  sensors sit just past |z| = 2, about what chance gives among 40, and their
-  spectra show nothing systematic.
+  sensors, s15 and s31, sit just past |z| = 2 under both windows, about as
+  many as chance gives among 40. They are worth a second look if the chamber
+  run is ever repeated.
 - `at_bound` is empty for every sensor: no fit ran into a parameter limit.
 
 ### Using the models elsewhere
