@@ -55,11 +55,11 @@ def main(psd_path: str, models_path: str, out: str) -> None:
 
     handles = [
         plt.Line2D([], [], color=MUTED, lw=1, label="Welch estimate"),
-        plt.Line2D([], [], color=MODEL, lw=2, label="white + 1/f fit"),
+        plt.Line2D([], [], color=MODEL, lw=2, label="white + 1/f fit (over the fitted bins)"),
         plt.Line2D([], [], color=INK_2, lw=1, ls="--", label="white floor 2σ_w²/fs"),
         plt.Line2D([], [], color=INK_2, lw=1, ls=":", label="knee (when below Nyquist)"),
     ]
-    fig.legend(handles=handles, loc="outside upper center", ncol=4, frameon=False)
+    fig.legend(handles=handles, loc="outside lower center", ncol=4, frameon=False)
     fig.suptitle(f"Chamber noise spectra, {d['window']} window, "
                  f"{float(d['segment_s']) / 3600:g} h segments", fontsize=11, color=INK)
     fig.savefig(out, dpi=110, facecolor=SURFACE, metadata={"Software": None})

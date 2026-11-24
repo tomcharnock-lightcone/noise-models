@@ -173,3 +173,28 @@ universes:
     derived_from: hann
     decisions:
       window: blackman
+
+findings:
+  window_choice_immaterial:
+    claim: >-
+      For every sensor, the Hann and Blackman windows give the same noise
+      model within the fits' own uncertainty: σ_w differs by under 1%, and no
+      parameter of any sensor moves by more than 0.74 of its 1σ bootstrap
+      uncertainty. Either universe's models can be used.
+    evidence:
+      - artifact: window_difference
+        quote: { exact: '"max_abs_relative_difference": 0.0095' }
+      - artifact: window_difference
+        quote: { exact: '"max_abs_difference_in_errors": 0.736' }
+
+  chamber_held_still:
+    claim: >-
+      The chamber held still: the across-sensor mean of the readings, and of
+      their hourly means, varies no more than independent sensor noise alone
+      predicts, inside the 95% range of the circular-shift null, so what each
+      sensor recorded is its own noise.
+    evidence:
+      - artifact: chamber_check
+        quote: { exact: '"ratio": 0.97078' }
+      - artifact: chamber_check
+        quote: { exact: '"ratio": 0.87022' }
